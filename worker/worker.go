@@ -5,15 +5,9 @@ import "sync"
 // There is my implementation of the "pipeling". The original idea is described in
 // the "Go Blog": https://blog.golang.org/pipelines
 
-// Result is a structure which will contain either value or error from task execution.
-type Result struct {
-	Val interface{}
-	Err error
-}
-
 // TaskFunction is a function type for tasks to be performed.
 // All incoming tasks have to conform to this function type.
-type TaskFunction func() Result
+type TaskFunction func() interface{}
 
 // PerformTasks is a function which will be called by the client to perform
 // multiple task concurrently.
@@ -21,10 +15,10 @@ type TaskFunction func() Result
 // tasks: the slice with functions (type TaskFunction)
 // done:  the channel to trigger the end of task processing and return
 // Output: the channel with results
-func PerformTasks(tasks []TaskFunction, done chan struct{}) chan Result {
+func PerformTasks(tasks []TaskFunction, done chan struct{}) chan interface{} {
 
 	// Create a worker for each incoming task
-	workers := make([]chan Result, 0, len(tasks))
+	workers := make([]chan interface{}, 0, len(tasks))
 
 	for _, task := range tasks {
 		resultChannel := newWorker(task, done)
@@ -36,14 +30,14 @@ func PerformTasks(tasks []TaskFunction, done chan struct{}) chan Result {
 	return out
 }
 
-func newWorker(task TaskFunction, done chan struct{}) chan Result {
-	out := make(chan Result)
+func newWorker(task TaskFunction, done chan struct{}) chan interface{} {
+	out := make(chan interface{})
 	go func() {
 		defer close(out)
 
 		select {
 		case <-done:
-			// Received a signal to abandon furher processing
+			// Received a signal to abandon further processing
 			return
 		case out <- task():
 			// Got some result
@@ -53,9 +47,9 @@ func newWorker(task TaskFunction, done chan struct{}) chan Result {
 	return out
 }
 
-func merge(workers []chan Result, done chan struct{}) chan Result {
+func merge(workers []chan interface{}, done chan struct{}) chan interface{} {
 	// Merged channel with results
-	out := make(chan Result)
+	out := make(chan interface{})
 
 	// Synchronization over channels: do not close "out" before all tasks are completed
 	var wg sync.WaitGroup
@@ -63,7 +57,7 @@ func merge(workers []chan Result, done chan struct{}) chan Result {
 	// Start output goroutine for each outbound channel from the workers
 	// get all values from channel (c) before channel is closed
 	// if interruption signal has received decrease the counter of running tasks via wg.Done()
-	output := func(c <-chan Result) {
+	output := func(c <-chan interface{}) {
 		defer wg.Done()
 		for result := range c {
 			select {
