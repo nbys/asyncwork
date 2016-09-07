@@ -54,9 +54,9 @@ func merge(workers []chan interface{}, done chan struct{}) chan interface{} {
 	// Synchronization over channels: do not close "out" before all tasks are completed
 	var wg sync.WaitGroup
 
-	// Start output goroutine for each outbound channel from the workers
-	// get all values from channel (c) before channel is closed
-	// if interruption signal has received decrease the counter of running tasks via wg.Done()
+	// Define function which waits the result from worker channel 
+	// and sends this result to the merged channel.
+	// Then it decreases the counter of running tasks via wg.Done().
 	output := func(c <-chan interface{}) {
 		defer wg.Done()
 		for result := range c {
