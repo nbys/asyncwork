@@ -54,7 +54,7 @@ func merge(workers []chan interface{}, done chan struct{}) chan interface{} {
 	// Synchronization over channels: do not close "out" before all tasks are completed
 	var wg sync.WaitGroup
 
-	// Define function which waits the result from worker channel 
+	// Define function which waits the result from worker channel
 	// and sends this result to the merged channel.
 	// Then it decreases the counter of running tasks via wg.Done().
 	output := func(c <-chan interface{}) {
@@ -62,7 +62,7 @@ func merge(workers []chan interface{}, done chan struct{}) chan interface{} {
 		for result := range c {
 			select {
 			case <-done:
-				// Received a signal to abandon furher processing
+				// Received a signal to abandon further processing
 				return
 			case out <- result:
 				// some message or nothing
