@@ -1,6 +1,9 @@
 package worker
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 // There is my implementation of the "pipeling". The original idea is described in
 // the "Go Blog": https://blog.golang.org/pipelines
@@ -15,28 +18,28 @@ type TaskFunction func() interface{}
 // tasks: the slice with functions (type TaskFunction)
 // done:  the channel to trigger the end of task processing and return
 // Output: the channel with results
-func PerformTasks(tasks []TaskFunction, done chan struct{}) chan interface{} {
+func PerformTasks(ctx context.Context, tasks []TaskFunction) chan interface{} {
 
 	// Create a worker for each incoming task
 	workers := make([]chan interface{}, 0, len(tasks))
 
 	for _, task := range tasks {
-		resultChannel := newWorker(task, done)
+		resultChannel := newWorker(ctx, task)
 		workers = append(workers, resultChannel)
 	}
 
 	// Merge results from all workers
-	out := merge(workers, done)
+	out := merge(ctx, workers)
 	return out
 }
 
-func newWorker(task TaskFunction, done chan struct{}) chan interface{} {
+func newWorker(ctx context.Context, task TaskFunction) chan interface{} {
 	out := make(chan interface{})
 	go func() {
 		defer close(out)
 
 		select {
-		case <-done:
+		case <-ctx.Done():
 			// Received a signal to abandon further processing
 			return
 		case out <- task():
@@ -47,7 +50,7 @@ func newWorker(task TaskFunction, done chan struct{}) chan interface{} {
 	return out
 }
 
-func merge(workers []chan interface{}, done chan struct{}) chan interface{} {
+func merge(ctx context.Context, workers []chan interface{}) chan interface{} {
 	// Merged channel with results
 	out := make(chan interface{})
 
@@ -61,7 +64,7 @@ func merge(workers []chan interface{}, done chan struct{}) chan interface{} {
 		defer wg.Done()
 		for result := range c {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				// Received a signal to abandon further processing
 				return
 			case out <- result:
