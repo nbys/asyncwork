@@ -21,25 +21,33 @@ All task have to be collected into the slice:
 tasks := []worker.TaskFunction{task1, task2, task3}
 ```
 
-Initialize the channel which will orchestrate canceling of task execution.
+Use context.Context to stop running goroutines
 ```go
-done := make(chan struct{})
-defer close(done)
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
 ```
 
 ## Execute the tasks
 Start task execution:
 ```go
-resultChannel := worker.PerformTasks(tasks, done)
+resultChannel := worker.PerformTasks(ctx, tasks)
 ```
 
 ## Get result from completed tasks
-Loop over the channel with results. 
+Loop over the channel with results.
 ```go
 for result := range resultChannel {
-		switch result.(type) {
-		case string:
-			fmt.Println("Here is a string:", result.(string))
-		case int:
-			fmt.Println("Here is an integer:", result.(int))
+  switch result.(type) {
+  case error:
+    fmt.Println("Received error")
+    cancel()
+    return
+  case string:
+    fmt.Println("Here is a string:", result.(string))
+  case int:
+    fmt.Println("Here is an integer:", result.(int))
+  default:
+    fmt.Println("Some unknown type ")
+  }
+}
 ```
