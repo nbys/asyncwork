@@ -1,6 +1,11 @@
 # asyncwork
 Execute tasks concurrently in golang.
 
+## Install
+``` shell
+go get -u github.com/cxww107/asyncwork/worker
+```
+
 ## Prepare the tasks
 The task is a function with following signature:
 ```go
