@@ -3,7 +3,7 @@ Execute tasks concurrently in golang.
 
 ## Install
 ``` shell
-go get -u github.com/cxww107/asyncwork/worker
+go get -u github.com/nbys/asyncwork/worker
 ```
 
 ## Prepare the tasks
